@@ -20,12 +20,25 @@ load_dotenv(override=True)
 
 if not os.environ.get("OPENAI_API_KEY"):
     os.environ["OPENAI_API_KEY"] = getpass.getpass("OpenAI API Key:")
+from llama_index import SimpleDirectoryReader, StorageContext, ServiceContext
+from llama_index.indices.vector_store import VectorStoreIndex
+from llama_iris import IRISVectorStore
+
+import getpass
+import os
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
+if not os.environ.get("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = getpass.getpass("OpenAI API Key:")
 # Create your views here.
 
 
 @api_view(['GET'])
 def getTest(request, format=None):
     return Response({"GET" : "WORKS"}, status=status.HTTP_200_OK)
+1
 1
 
 @api_view(['POST'])
@@ -70,7 +83,5 @@ def postTest(request, format=None):
 
     import textwrap
     result = textwrap.fill(str(response), 100)
-
-    #res = json.dumps({"response": result}, ensure_ascii=False).encode('utf-8')
 
     return Response({"response": result}, content_type='application/json;charset=UTF-8', status=status.HTTP_200_OK)
