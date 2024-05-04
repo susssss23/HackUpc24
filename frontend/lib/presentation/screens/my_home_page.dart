@@ -42,9 +42,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadResposta() async {
-    List<String> list =
-        await _controladorPresentacio.sendPost(_text, "english");
-    respostaBack = list.first;
+    String list = await _controladorPresentacio.sendPost(_text, "english");
+    respostaBack = list;
   }
 
   @override

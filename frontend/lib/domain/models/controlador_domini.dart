@@ -5,7 +5,7 @@ import "package:flutter/material.dart";
 class ControladorDomini {
   final apiUrl = "http://192.168.50.234:8000/api/post";
 
-  Future<List<String>> sendPostRequest(String question, String language) async {
+  Future<String> sendPostRequest(String question, String language) async {
     var response = await http.post(Uri.parse(apiUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
@@ -16,11 +16,13 @@ class ControladorDomini {
     if (response.statusCode == 200) {
       dynamic jsonResponse = jsonDecode(response.body);
       // Check if jsonResponse is a List or a Map
-      if (jsonResponse is List) {
-        return jsonResponse.cast<String>();
+
+      if (jsonResponse.containsKey('response')) {
+        // Access the value of the 'attribute'
+        String attributeValue = jsonResponse['response'];
+        return attributeValue;
       } else {
-        // If it's not a List, handle it accordingly
-        throw Exception('Expected a List, but received a Map');
+        throw Exception('Attribute not found in JSON response');
       }
     } else {
       throw Exception('Failed to load data from API');
