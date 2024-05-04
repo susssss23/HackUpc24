@@ -15,12 +15,11 @@ from llama_iris import IRISVectorStore
 import getpass
 import os
 from dotenv import load_dotenv
-from django_backend import settings
 
 load_dotenv(override=True)
 
 if not os.environ.get("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
+    os.environ["OPENAI_API_KEY"] = getpass.getpass("OpenAI API Key:")
 # Create your views here.
 
 
