@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:flutter/widgets.dart";
 import "package:my_web_app/presentation/controlador_presentacio.dart";
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
@@ -19,12 +20,23 @@ class _MyHomePageState extends State<MyHomePage> {
   String _text = 'aqui anira la veu';
   double _confidence = 1.0;
   String transcription = '';
+  String resposta =
+      'this is where the response would be aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  bool Micro = false;
 
   late String textEntered;
 
   _MyHomePageState(ControladorPresentacio controladorPresentacio) {
     _controladorPresentacio = controladorPresentacio;
     textEntered = '';
+  }
+
+  void enviarMissatge() {
+    if (!Micro) {
+      //crida a backend
+    } else {
+      print("s'ha de clickar dins del text field");
+    }
   }
 
   @override
@@ -34,24 +46,29 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void startListening() async {
-    if (!_isListening) {
-      bool available = await _speech!.initialize(
-        onStatus: (status) => print('Speech recognition status: $status'),
-        onError: (error) => print('Error: $error'),
-      );
-      if (available) {
-        setState(() => _isListening = true);
-        _speech.listen(
-            onResult: (val) => setState(() {
-                  _text = val.recognizedWords;
-                  if (val.hasConfidenceRating && val.confidence > 0) {
-                    _confidence = val.confidence;
-                  }
-                }));
+    if (Micro) {
+      if (!_isListening) {
+        bool available = await _speech.initialize(
+          onStatus: (status) => print('Speech recognition status: $status'),
+          onError: (error) => print('Error: $error'),
+        );
+        if (available) {
+          setState(() => _isListening = true);
+          _speech.listen(
+            onResult: (val) => setState(
+              () {
+                _text = val.recognizedWords;
+                if (val.hasConfidenceRating && val.confidence > 0) {
+                  _confidence = val.confidence;
+                }
+              },
+            ),
+          );
+        }
+      } else {
+        setState(() => _isListening = false);
+        _speech.stop();
       }
-    } else {
-      setState(() => _isListening = false);
-      _speech.stop();
     }
   }
 
@@ -65,10 +82,10 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
             const Padding(
-              padding: EdgeInsets.only(right: 100.0, bottom: 25.0),
+              padding: EdgeInsets.only(right: 100.0, bottom: 5.0, top: 10.0),
               child: Text(
                 'Ask me anything',
                 style: TextStyle(
@@ -80,13 +97,37 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             Container(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.only(
+                  top: 10.0, bottom: 10.0, left: 20.0, right: 20.0),
               child: _buildEnterBar(),
             ),
-            Text(
-              'Transcription: $_text',
-              style: TextStyle(
-                color: Colors.white,
+            Padding(
+              padding: const EdgeInsets.only(right: 50.0),
+              child: Text(
+                'Confidence: $_confidence',
+                style: const TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(
+              height: 30.0,
+            ),
+            SizedBox(
+              width: 350,
+              height: 470,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Text(
+                      resposta,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20.0,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -121,20 +162,46 @@ class _MyHomePageState extends State<MyHomePage> {
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width * 0.70,
       //equivalen a  50% de la pantalla
-      child: TextField(
-        maxLines: 4,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.white,
-          hintText: 'Enter...',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20.0),
-            borderSide: const BorderSide(width: 5.0, color: Colors.purple),
-          ),
+      child: Micro ? enteringTextField() : notEntering(),
+    );
+  }
+
+  Widget enteringTextField() {
+    return TextField(
+      maxLines: 4,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        hintText: 'Enter...',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20.0),
+          borderSide: const BorderSide(width: 5.0, color: Colors.purple),
         ),
-        onChanged: (value) {
-          textEntered = value;
-        },
+      ),
+      onChanged: (value) {
+        textEntered = value;
+        setState(() {
+          Micro = false;
+        });
+      },
+    );
+  }
+
+  Widget notEntering() {
+    return Container(
+      width: 280,
+      height: 150,
+      padding: const EdgeInsets.all(5.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20.0),
+        border: Border.all(width: 5.0, color: Colors.purple),
+        color: Colors.white,
+      ),
+      child: Text(
+        _text,
+        style: const TextStyle(
+          color: Colors.black,
+        ),
       ),
     );
   }
@@ -142,14 +209,16 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildIconSend() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey,
+        color: Micro ? Colors.purple : Colors.grey,
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
         icon: const Icon(Icons.send),
         color: Colors.white,
         iconSize: 30,
-        onPressed: () {},
+        onPressed: () {
+          enviarMissatge();
+        },
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
@@ -160,14 +229,19 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildIconMicro() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.purple,
+        color: Micro ? Colors.grey : Colors.purple,
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
         icon: const Icon(Icons.mic_rounded),
         color: Colors.white,
         iconSize: 30,
-        onPressed: startListening,
+        onPressed: () {
+          startListening();
+          setState(() {
+            Micro = !Micro;
+          });
+        },
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
