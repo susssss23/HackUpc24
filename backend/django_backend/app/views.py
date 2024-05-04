@@ -71,4 +71,6 @@ def postTest(request, format=None):
     import textwrap
     result = textwrap.fill(str(response), 100)
 
-    return Response({"POST" : { "language": language, "question": result}}, status=status.HTTP_200_OK)
+    #res = json.dumps({"response": result}, ensure_ascii=False).encode('utf-8')
+
+    return Response({"response": result}, content_type='application/json;charset=UTF-8', status=status.HTTP_200_OK)
