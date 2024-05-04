@@ -44,7 +44,8 @@ def getTest(request, format=None):
 @api_view(['POST'])
 def postTest(request, format=None): 
     user_input = request.data.get("question")
-    language = request.data.get("language")
+
+    print(user_input)
 
     username = 'demo'
     password = 'demo' 
@@ -72,7 +73,8 @@ def postTest(request, format=None):
     {user_input}
 
     INSTRUCCIONS:
-    Respon la PREGUNTA. Si no en saps la resposta, digues "Ho sento, però no sé la resposta.".
+    Respon la PREGUNTA de l'usuari. Si no en saps la resposta, digues que ho sents, però que no saps la resposta.
+    Respon en l'idioma de l'usuari. 
 
     """
 
