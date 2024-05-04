@@ -3,4 +3,6 @@
 db.sqlite3
 
 *.cpython-310.pyc
+app/__pycache__/
+django_backend/__pycache__/
 **/__pycache__/
