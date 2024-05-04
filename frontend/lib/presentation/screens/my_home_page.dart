@@ -22,6 +22,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String transcription = '';
   String resposta = '';
   bool Micro = false;
+  String respostaBack = '';
 
   late String textEntered;
 
@@ -33,10 +34,17 @@ class _MyHomePageState extends State<MyHomePage> {
   void enviarMissatge() {
     //crida backend
     /*si el backend torna-> respostaBack*/
+    _loadResposta();
+
     setState(() {
-      //resposta = respostaBack;
-      resposta = 'respostaBack';
+      resposta = respostaBack;
     });
+  }
+
+  Future<void> _loadResposta() async {
+    List<String> list =
+        await _controladorPresentacio.sendPost(_text, "english");
+    respostaBack = list.first;
   }
 
   @override
@@ -154,7 +162,7 @@ class _MyHomePageState extends State<MyHomePage> {
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width * 0.70,
       //equivalen a  50% de la pantalla
-      child: Micro ? enteringTextField() : notEntering(),
+      child: Micro ? notEntering() : enteringTextField(),
     );
   }
 
