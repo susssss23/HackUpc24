@@ -20,8 +20,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _text = 'aqui anira la veu';
   double _confidence = 1.0;
   String transcription = '';
-  String resposta =
-      'this is where the response would be aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  String resposta = '';
   bool Micro = false;
 
   late String textEntered;
@@ -32,11 +31,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void enviarMissatge() {
-    if (!Micro) {
-      //crida a backend
-    } else {
-      print("s'ha de clickar dins del text field");
-    }
+    //crida backend
+    /*si el backend torna-> respostaBack*/
+    setState(() {
+      //resposta = respostaBack;
+      resposta = 'respostaBack';
+    });
   }
 
   @override
@@ -67,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       } else {
         setState(() => _isListening = false);
+
         _speech.stop();
       }
     }
@@ -75,62 +76,49 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color.fromRGBO(33, 33, 33, 1),
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text("Hack24"),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            const Padding(
-              padding: EdgeInsets.only(right: 100.0, bottom: 5.0, top: 10.0),
-              child: Text(
-                'Ask me anything',
-                style: TextStyle(
-                  color: Colors.purple,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Monsterrat',
-                  fontSize: 20.0,
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              const Padding(
+                padding: EdgeInsets.only(right: 100.0, bottom: 5.0, top: 10.0),
+                child: Text(
+                  'Ask me anything',
+                  style: TextStyle(
+                    color: Colors.purple,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Monsterrat',
+                    fontSize: 20.0,
+                  ),
                 ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.only(
-                  top: 10.0, bottom: 10.0, left: 20.0, right: 20.0),
-              child: _buildEnterBar(),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 50.0),
-              child: Text(
-                'Confidence: $_confidence',
-                style: const TextStyle(
-                  color: Colors.white,
+              Container(
+                padding: const EdgeInsets.only(
+                    top: 10.0, bottom: 10.0, left: 20.0, right: 20.0),
+                child: _buildEnterBar(),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 50.0),
+                child: Text(
+                  'Confidence: $_confidence',
+                  style: const TextStyle(
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(
-              height: 30.0,
-            ),
-            SizedBox(
-              width: 350,
-              height: 470,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Text(
-                      resposta,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20.0,
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(
+                height: 30.0,
               ),
-            ),
-          ],
+              _buildResposta(),
+            ],
+          ),
         ),
       ),
     );
@@ -151,6 +139,10 @@ class _MyHomePageState extends State<MyHomePage> {
               height: 10.0,
             ),
             _buildIconMicro(),
+            const SizedBox(
+              height: 10.0,
+            ),
+            _buildIconDelete(),
           ],
         ),
       ],
@@ -209,7 +201,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildIconSend() {
     return Container(
       decoration: BoxDecoration(
-        color: Micro ? Colors.purple : Colors.grey,
+        color: Colors.purple,
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
@@ -229,7 +221,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildIconMicro() {
     return Container(
       decoration: BoxDecoration(
-        color: Micro ? Colors.grey : Colors.purple,
+        color: Micro ? Colors.grey : Colors.red,
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
@@ -245,6 +237,49 @@ class _MyHomePageState extends State<MyHomePage> {
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
+      ),
+    );
+  }
+
+  Widget _buildIconDelete() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: IconButton(
+        icon: const Icon(Icons.delete),
+        color: Colors.white,
+        iconSize: 30,
+        onPressed: () {
+          setState(() {
+            _text = '';
+            resposta = '';
+          });
+        },
+        padding: const EdgeInsets.all(9.0),
+        splashRadius: 20,
+        constraints: const BoxConstraints(),
+      ),
+    );
+  }
+
+  Widget _buildResposta() {
+    return SizedBox(
+      width: 350,
+      height: 470,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Text(
+              resposta,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20.0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
