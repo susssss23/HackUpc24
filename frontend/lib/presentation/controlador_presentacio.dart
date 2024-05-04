@@ -14,4 +14,8 @@ class ControladorPresentacio {
       ),
     );
   }*/
+
+  Future<String> sendPost(String question, String language) {
+    return controladorDomini.sendPostRequest(question, language);
+  }
 }
