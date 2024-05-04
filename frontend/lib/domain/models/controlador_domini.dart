@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import "package:flutter/material.dart";
 
 class ControladorDomini {
-  final apiUrl = "http://192.168.50.234:8000/api/post";
+  final apiUrl = "http://192.168.50.181:8000/api/post";
 
   Future<String> sendPostRequest(String question, String language) async {
     var response = await http.post(Uri.parse(apiUrl),
