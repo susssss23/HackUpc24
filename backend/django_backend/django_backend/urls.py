@@ -22,5 +22,5 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls), #cuando se visite la ruta principal del sitio, se ejecuta hello '' se corresponde a la ruta principal
-    path('', include('app.urls')),
+    path('app/', include('app.urls')),
 ]
