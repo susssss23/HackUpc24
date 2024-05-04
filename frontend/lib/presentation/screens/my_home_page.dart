@@ -1,12 +1,12 @@
-import "package:flutter/material.dart";
-import "package:flutter/widgets.dart";
-import "package:my_web_app/presentation/controlador_presentacio.dart";
+import 'dart:developer';
+import 'package:flutter/material.dart';
+import 'package:my_web_app/presentation/controlador_presentacio.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class MyHomePage extends StatefulWidget {
   final ControladorPresentacio controladorPresentacio;
 
-  const MyHomePage({super.key, required this.controladorPresentacio});
+  const MyHomePage({Key? key, required this.controladorPresentacio}) : super(key: key);
 
   @override
   State<MyHomePage> createState() => _MyHomePageState(controladorPresentacio);
@@ -14,36 +14,30 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late ControladorPresentacio _controladorPresentacio;
-
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = 'aqui anira la veu';
+  late String _textValueInQuestionBox;
+  TextEditingController _textEditingController = TextEditingController(text: '');
   double _confidence = 1.0;
-  String transcription = '';
-  String resposta = '';
-  bool Micro = false;
-  String respostaBack = '';
-
-  late String textEntered;
+  String answerValueInScreen = '';
+  bool _isMicrophoneActive = false;
 
   _MyHomePageState(ControladorPresentacio controladorPresentacio) {
     _controladorPresentacio = controladorPresentacio;
-    textEntered = '';
+    _textValueInQuestionBox = '';
   }
 
   void enviarMissatge() {
-    //crida backend
-    /*si el backend torna-> respostaBack*/
     _loadResposta();
-
-    setState(() {
-      resposta = respostaBack;
-    });
   }
 
   Future<void> _loadResposta() async {
-    String list = await _controladorPresentacio.sendPost(_text, "english");
-    respostaBack = list;
+    String resultRequest =
+        await _controladorPresentacio.sendPost(_textValueInQuestionBox, "english");
+
+    setState(() {
+      answerValueInScreen = resultRequest;
+    });
   }
 
   @override
@@ -53,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void startListening() async {
-    if (Micro) {
+    if (_isMicrophoneActive) {
       if (!_isListening) {
         bool available = await _speech.initialize(
           onStatus: (status) => print('Speech recognition status: $status'),
@@ -64,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _speech.listen(
             onResult: (val) => setState(
               () {
-                _text = val.recognizedWords;
+                _textValueInQuestionBox = val.recognizedWords;
                 if (val.hasConfidenceRating && val.confidence > 0) {
                   _confidence = val.confidence;
                 }
@@ -74,7 +68,6 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       } else {
         setState(() => _isListening = false);
-
         _speech.stop();
       }
     }
@@ -86,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color.fromRGBO(33, 33, 33, 1),
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
         title: const Text("Hack24"),
       ),
       body: SingleChildScrollView(
@@ -101,14 +94,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   style: TextStyle(
                     color: Colors.purple,
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'Monsterrat',
+                    fontFamily: 'Montserrat',
                     fontSize: 20.0,
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.only(
-                    top: 10.0, bottom: 10.0, left: 20.0, right: 20.0),
+                padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
                 child: _buildEnterBar(),
               ),
               Padding(
@@ -136,57 +128,72 @@ class _MyHomePageState extends State<MyHomePage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildTextBox(),
-        const Padding(
-          padding: EdgeInsets.all(10.0),
-        ),
+        const SizedBox(width: 10.0),
         Column(
           children: [
-            _buildIconSend(),
-            const SizedBox(
-              height: 10.0,
-            ),
-            _buildIconMicro(),
-            const SizedBox(
-              height: 10.0,
-            ),
-            _buildIconDelete(),
+
+            // SEND QUESTION BUTTON
+            _buildIconButton(Icons.send, () => enviarMissatge()),
+            const SizedBox(height: 10.0),
+
+            // MIC BUTTON
+            _buildIconButton(Icons.mic_rounded, () {
+              startListening();
+              setState(() {
+                _isMicrophoneActive = !_isMicrophoneActive;
+              });
+            }),
+            const SizedBox(height: 10.0),
+
+            // erase button
+            _buildIconButton(Icons.delete, () {
+              setState(() {
+                log("erase values");
+                _textValueInQuestionBox = '';
+                answerValueInScreen = '';
+              });
+            }),
           ],
         ),
       ],
     );
   }
 
+// Question Text Area
   Widget _buildTextBox() {
     return Container(
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width * 0.70,
-      //equivalen a  50% de la pantalla
-      child: Micro ? notEntering() : enteringTextField(),
+      child: _isMicrophoneActive ? _buildVoiceInput() : _buildTextInput(),
     );
   }
 
-  Widget enteringTextField() {
+  Widget _buildTextInput() {
+
+    _textEditingController.text = _textValueInQuestionBox; // Set text value
+    
     return TextField(
+      controller: _textEditingController,
       maxLines: 4,
       decoration: InputDecoration(
         filled: true,
         fillColor: Colors.white,
-        hintText: 'Enter...',
+        hintText: 'Enter Question...',
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20.0),
           borderSide: const BorderSide(width: 5.0, color: Colors.purple),
         ),
       ),
       onChanged: (value) {
-        textEntered = value;
-        setState(() {
-          Micro = false;
-        });
+        _textValueInQuestionBox = value;
+        //setState(() {
+        //  _isMicrophoneActive = false;
+        //});
       },
     );
   }
 
-  Widget notEntering() {
+  Widget _buildVoiceInput() {
     return Container(
       width: 280,
       height: 150,
@@ -197,7 +204,7 @@ class _MyHomePageState extends State<MyHomePage> {
         color: Colors.white,
       ),
       child: Text(
-        _text,
+        _textValueInQuestionBox,
         style: const TextStyle(
           color: Colors.black,
         ),
@@ -205,65 +212,19 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildIconSend() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.purple,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.send),
-        color: Colors.white,
-        iconSize: 30,
-        onPressed: () {
-          enviarMissatge();
-        },
-        padding: const EdgeInsets.all(9.0),
-        splashRadius: 20,
-        constraints: const BoxConstraints(),
-      ),
-    );
-  }
 
-  Widget _buildIconMicro() {
+  // PARENT CLASS for ICON BUTTONS
+  Widget _buildIconButton(IconData icon, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
-        color: Micro ? Colors.grey : Colors.red,
+        color: icon == Icons.mic_rounded ? (_isMicrophoneActive ? Colors.red : Colors.grey) : Colors.purple,
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
-        icon: const Icon(Icons.mic_rounded),
+        icon: Icon(icon),
         color: Colors.white,
         iconSize: 30,
-        onPressed: () {
-          startListening();
-          setState(() {
-            Micro = !Micro;
-          });
-        },
-        padding: const EdgeInsets.all(9.0),
-        splashRadius: 20,
-        constraints: const BoxConstraints(),
-      ),
-    );
-  }
-
-  Widget _buildIconDelete() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.delete),
-        color: Colors.white,
-        iconSize: 30,
-        onPressed: () {
-          setState(() {
-            _text = '';
-            resposta = '';
-          });
-        },
+        onPressed: onPressed,
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
@@ -279,7 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           children: [
             Text(
-              resposta,
+              answerValueInScreen,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20.0,
