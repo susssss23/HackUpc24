@@ -224,50 +224,39 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width * 0.70,
-      child: _isListeningToUser ? _buildVoiceInput() : _buildTextInput(),
+      child: _buildTextInput(),
     );
   }
 
   Widget _buildTextInput() {
 
     _textEditingController.text = _textValueInQuestionBox; // Set text value
-    
-    return TextField(
-      controller: _textEditingController,
-      minLines: 5,
-      maxLines: 10,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        hintText: 'Enter Question...',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20.0),
-          borderSide: const BorderSide(width: 5.0, color: Colors.purple),
-        ),
-      ),
-      onChanged: (value) {
-        setState(() {
-          _textValueInQuestionBox = value;
-        });
-      },
-    );
-  }
-
-  Widget _buildVoiceInput() {
+  
     return Container(
-      width: 280,
-      height: 150,
-      padding: const EdgeInsets.all(5.0),
+      padding: EdgeInsets.all(5.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(width: 5.0, color: Colors.purple),
+        border: Border.all(
+          width: _isListeningToUser ? 6.0 : 3.0,
+          color: _isListeningToUser ? Colors.red : Colors.purple,
+        ),
         color: Colors.white,
       ),
-      child: Text(
-        _textValueInQuestionBox,
-        style: const TextStyle(
-          color: Colors.black,
+      child: TextField(
+        controller: _textEditingController,
+        minLines: 5,
+        maxLines: 10,
+        decoration: const InputDecoration(
+          hintText: 'Enter Question...',
+          fillColor: Colors.white,
+          filled: true,
+          border: InputBorder.none,
         ),
+        onChanged: (value) {
+          setState(() {
+            _textValueInQuestionBox = value;
+          });
+        },
       ),
     );
   }
