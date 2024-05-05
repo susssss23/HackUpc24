@@ -1,12 +1,14 @@
-import "package:flutter/material.dart";
-import "package:flutter/widgets.dart";
-import "package:my_web_app/presentation/controlador_presentacio.dart";
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'dart:developer';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:my_web_app/presentation/controlador_presentacio.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
 
 class MyHomePage extends StatefulWidget {
   final ControladorPresentacio controladorPresentacio;
 
-  const MyHomePage({super.key, required this.controladorPresentacio});
+  const MyHomePage({Key? key, required this.controladorPresentacio}) : super(key: key);
 
   @override
   State<MyHomePage> createState() => _MyHomePageState(controladorPresentacio);
@@ -14,71 +16,112 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late ControladorPresentacio _controladorPresentacio;
-
-  late stt.SpeechToText _speech;
-  bool _isListening = false;
-  String _text = 'aqui anira la veu';
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechIsEnabled = false;
+  bool _isListeningToUser = false;
   double _confidence = 1.0;
-  String transcription = '';
-  String resposta = '';
-  bool Micro = false;
-  String respostaBack = '';
 
-  late String textEntered;
+
+  late Timer _timer;
+  late Timer _timer2;
+  int i = 0;
+
+   List<String> answerStructure = [];
+
+  late String _textValueInQuestionBox;
+  final TextEditingController _textEditingController = TextEditingController(text: '');
+  String answerValueInScreen = '';
 
   _MyHomePageState(ControladorPresentacio controladorPresentacio) {
     _controladorPresentacio = controladorPresentacio;
-    textEntered = '';
+    _textValueInQuestionBox = '';
   }
 
+  // SEND QUESTION to DJANGO BACKEND
   void enviarMissatge() {
-    //crida backend
-    /*si el backend torna-> respostaBack*/
-    _loadResposta();
-
     setState(() {
-      resposta = respostaBack;
+      answerStructure = [];
+      //_textValueInQuestionBox = '';
+      answerStructure.add("...");
     });
+    _timer2 = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      i = (i % 3) + 1;
+      setState(() {
+        if (answerStructure.length != 0) answerStructure[answerStructure.length-1] = "." * i + " "*(3-i);
+      });
+    });
+    _loadResposta();
   }
 
   Future<void> _loadResposta() async {
-    String list = await _controladorPresentacio.sendPost(_text, "english");
-    respostaBack = list;
+    String resultRequest =
+        await _controladorPresentacio.sendPost(_textValueInQuestionBox, "english");
+    _timer2.cancel();
+    setState(() {
+      _timer2.cancel();
+      answerStructure[answerStructure.length-1] = resultRequest;
+    });
   }
 
   @override
   void initState() {
     super.initState();
-    _speech = stt.SpeechToText();
+    _initSpeech();
   }
 
-  void startListening() async {
-    if (Micro) {
-      if (!_isListening) {
-        bool available = await _speech.initialize(
-          onStatus: (status) => print('Speech recognition status: $status'),
-          onError: (error) => print('Error: $error'),
-        );
-        if (available) {
-          setState(() => _isListening = true);
-          _speech.listen(
-            onResult: (val) => setState(
-              () {
-                _text = val.recognizedWords;
-                if (val.hasConfidenceRating && val.confidence > 0) {
-                  _confidence = val.confidence;
-                }
-              },
-            ),
-          );
-        }
-      } else {
-        setState(() => _isListening = false);
-
-        _speech.stop();
-      }
+  // Listening methods
+  /// INIT: This has to happen only once per app
+    void _initSpeech() async {
+      _speechIsEnabled = await _speechToText.initialize();
+      setState(() {});
     }
-  }
+
+
+    /// Each time to start a speech recognition session
+    void _startListening() async {
+      await _speechToText.listen(
+        listenOptions: SpeechListenOptions(cancelOnError: true, listenMode: ListenMode.dictation),
+        onResult: _onSpeechResult,
+        localeId: "en_En",
+        pauseFor: const Duration(seconds: 10), //adjustt duration as needed
+        listenFor: const Duration(seconds: 25), //adjustt duration as needed
+      );
+      setState(() {
+        _isListeningToUser = true;
+      });
+
+      
+      // Start the timer to periodically check if still listening
+      _timer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+        if (_speechToText.isNotListening) {
+          // Speech recognition stopped
+          log("AUTO STOPING");
+          _stopListening();
+        }
+      });
+    }
+
+
+    /// Manually stop the active speech recognition session
+    /// Note that there are also timeouts that each platform enforces and the SpeechToText plugin supports setting timeouts on the listen method.
+    void _stopListening() async {
+      await _speechToText.stop();
+      setState(() {
+        _isListeningToUser = false;
+        _timer.cancel();
+      });
+      log("END");
+    }
+
+    /// This is the callback that the SpeechToText plugin calls when the platform returns recognized words.
+    void _onSpeechResult(SpeechRecognitionResult result) {
+      setState(() {
+        _textValueInQuestionBox = result.recognizedWords;
+        if (result.hasConfidenceRating && result.confidence > 0) {
+          _confidence = result.confidence;
+        }
+      });
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -86,184 +129,160 @@ class _MyHomePageState extends State<MyHomePage> {
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color.fromRGBO(33, 33, 33, 1),
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text("Hack24"),
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              const Padding(
-                padding: EdgeInsets.only(right: 100.0, bottom: 5.0, top: 10.0),
-                child: Text(
-                  'Ask me anything',
-                  style: TextStyle(
-                    color: Colors.purple,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Monsterrat',
-                    fontSize: 20.0,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.only(
-                    top: 10.0, bottom: 10.0, left: 20.0, right: 20.0),
-                child: _buildEnterBar(),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 50.0),
-                child: Text(
-                  'Confidence: $_confidence',
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 30.0,
-              ),
-              _buildResposta(),
-            ],
+        backgroundColor: const Color.fromRGBO(114, 28, 130, 1),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.fromRGBO(114, 28, 130, 1), // Start color
+                Color.fromRGBO(95, 36, 162, 1), // End color
+              ],
+            ),
           ),
         ),
+        toolbarHeight: 80,
+        title: const Text(
+          'AI Student Support Assistant',
+          style: TextStyle(
+            color: Color.fromARGB(255, 216, 185, 222),
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Montserrat',
+            fontSize: 22.0,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+        titleSpacing: 35.0,
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 40.0),
+          const Text(
+            'Ask it Anything',
+            style: TextStyle(
+              color: Colors.purple,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Montserrat',
+              fontSize: 30.0,
+              fontStyle: FontStyle.italic,
+            ),
+          ),          
+          const SizedBox(height: 10.0),
+          _buildEnterBar(),
+          const SizedBox(height: 75.0),
+          const Text(
+            'GenAI\'s Answer',
+            style: TextStyle(
+              color: Colors.purple,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Montserrat',
+              fontSize: 30.0,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+                    const SizedBox(height: 3.0),
+          Expanded(
+            child: _buildanswerStructure(),
+          ),
+        ],
       ),
     );
   }
 
+
+
   Widget _buildEnterBar() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTextBox(),
-        const Padding(
-          padding: EdgeInsets.all(10.0),
-        ),
+        const SizedBox(width: 10.0),
         Column(
           children: [
-            _buildIconSend(),
-            const SizedBox(
-              height: 10.0,
+
+            // SEND QUESTION BUTTON
+            _buildIconButton(Icons.send, () => enviarMissatge()),
+            const SizedBox(height: 10.0),
+
+            // MIC BUTTON
+            _buildIconButton(Icons.mic_rounded, 
+              _speechToText.isNotListening ? _startListening : _stopListening
             ),
-            _buildIconMicro(),
-            const SizedBox(
-              height: 10.0,
-            ),
-            _buildIconDelete(),
+            const SizedBox(height: 10.0),
+
+            // erase button
+            _buildIconButton(Icons.delete, () {
+              setState(() {
+                log("erase values");
+                _textValueInQuestionBox = '';
+                answerValueInScreen = '';
+                _confidence = 1.0;
+                answerStructure = [];
+              });
+            }),
           ],
         ),
       ],
     );
   }
 
+// Question Text Area
   Widget _buildTextBox() {
     return Container(
       alignment: Alignment.center,
-      width: MediaQuery.of(context).size.width * 0.70,
-      //equivalen a  50% de la pantalla
-      child: Micro ? notEntering() : enteringTextField(),
+      width: MediaQuery.of(context).size.width * 0.77,
+      child: _buildTextInput(),
     );
   }
 
-  Widget enteringTextField() {
-    return TextField(
-      maxLines: 4,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        hintText: 'Enter...',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20.0),
-          borderSide: const BorderSide(width: 5.0, color: Colors.purple),
-        ),
-      ),
-      onChanged: (value) {
-        textEntered = value;
-        setState(() {
-          Micro = false;
-        });
-      },
-    );
-  }
+  Widget _buildTextInput() {
 
-  Widget notEntering() {
+    _textEditingController.text = _textValueInQuestionBox; // Set text value
+  
     return Container(
-      width: 280,
-      height: 150,
       padding: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(width: 5.0, color: Colors.purple),
-        color: Colors.white,
-      ),
-      child: Text(
-        _text,
-        style: const TextStyle(
-          color: Colors.black,
+        border: Border.all(
+          width: _isListeningToUser ? 6.0 : 3.0,
+          color: _isListeningToUser ? Colors.red : Colors.purple,
         ),
-      ),
-    );
-  }
-
-  Widget _buildIconSend() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.purple,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.send),
         color: Colors.white,
-        iconSize: 30,
-        onPressed: () {
-          enviarMissatge();
-        },
-        padding: const EdgeInsets.all(9.0),
-        splashRadius: 20,
-        constraints: const BoxConstraints(),
       ),
-    );
-  }
-
-  Widget _buildIconMicro() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Micro ? Colors.grey : Colors.red,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.mic_rounded),
-        color: Colors.white,
-        iconSize: 30,
-        onPressed: () {
-          startListening();
+      child: TextField(
+        controller: _textEditingController,
+        minLines: 6,
+        maxLines: 10,
+        decoration: const InputDecoration(
+          hintText: 'Enter your Question...',
+          hintStyle: TextStyle(fontStyle: FontStyle.italic),
+          fillColor: Colors.white,
+          filled: true,
+          border: InputBorder.none,
+        ),
+        onChanged: (value) {
           setState(() {
-            Micro = !Micro;
+            _textValueInQuestionBox = value;
           });
         },
-        padding: const EdgeInsets.all(9.0),
-        splashRadius: 20,
-        constraints: const BoxConstraints(),
       ),
     );
   }
 
-  Widget _buildIconDelete() {
+  Widget _buildIconButton(IconData icon, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey,
+        color: (icon == Icons.mic_rounded && _isListeningToUser) ? Colors.red : 
+          (icon == Icons.delete && _textValueInQuestionBox == '' && answerStructure.length == 0) ? Colors.grey : Colors.purple,    
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
-        icon: const Icon(Icons.delete),
+        icon: Icon(icon),
         color: Colors.white,
         iconSize: 30,
-        onPressed: () {
-          setState(() {
-            _text = '';
-            resposta = '';
-          });
-        },
+        onPressed: (icon == Icons.delete && _textValueInQuestionBox == '' && answerStructure.length == 0) ? null : onPressed,
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
@@ -271,23 +290,56 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildResposta() {
-    return SizedBox(
-      width: 350,
-      height: 470,
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Text(
-              resposta,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20.0,
+  Widget _buildanswerStructure() {
+    return Container(
+      width: double.infinity,
+      height: 300, // Or any other fixed height
+      //color: Colors.blue,
+      child: Column(
+        children: [
+          Expanded(
+            child: Container(
+              child: ListView.builder(
+                itemCount: answerStructure.length,
+                itemBuilder: (context, index) {
+                  return _buildChatBubble(answerStructure[index], index);
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+
+  Widget _buildChatBubble(String message, int index) {
+    final isUserMessage = index % 2 == 0; // Alternate message alignment
+
+    return Column(
+      crossAxisAlignment: isUserMessage ? CrossAxisAlignment.center : CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: (answerStructure[0].length <= 4) ? 40 : MediaQuery.of(context).size.width * 0.75, // Set maximum width as 80% of screen width
+          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            gradient: LinearGradient(
+              colors: isUserMessage ? [Colors.purple, Color.fromARGB(255, 89, 21, 101)] : [Color.fromARGB(255, 212, 161, 222), Color.fromARGB(255, 208, 114, 227)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          
+          child: Text(
+            message,
+            
+            style: const TextStyle(color: Colors.white, fontSize: 17.0,),
+          ),
+        ),
+        if (!isUserMessage) const SizedBox(height: 10), // Add extra space after every second message
+      ],
     );
   }
 }
