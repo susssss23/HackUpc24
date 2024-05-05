@@ -19,11 +19,12 @@ class _MyHomePageState extends State<MyHomePage> {
   final SpeechToText _speechToText = SpeechToText();
   bool _speechIsEnabled = false;
   bool _isListeningToUser = false;
-  bool _sentOneMessage = false;
   double _confidence = 1.0;
 
 
   late Timer _timer;
+  late Timer _timer2;
+  int i = 0;
 
    List<String> chatHistory = [];
 
@@ -43,17 +44,22 @@ class _MyHomePageState extends State<MyHomePage> {
       _textValueInQuestionBox = '';
       chatHistory.add("...");
     });
-    _loadResposta(); 
-    
-    }
+    _timer2 = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      i = (i % 3) + 1;
+      setState(() {
+        chatHistory[chatHistory.length-1] = "." * i + " "*(3-i);
+      });
+    });
+    _loadResposta();
+  }
 
   Future<void> _loadResposta() async {
     String resultRequest =
         await _controladorPresentacio.sendPost(_textValueInQuestionBox, "english");
-
+    _timer2.cancel();
     setState(() {
+      _timer2.cancel();
       chatHistory[chatHistory.length-1] = resultRequest;
-      _sentOneMessage = true;
     });
   }
 
@@ -93,6 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       });
     }
+
 
     /// Manually stop the active speech recognition session
     /// Note that there are also timeouts that each platform enforces and the SpeechToText plugin supports setting timeouts on the listen method.
@@ -195,7 +202,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _textValueInQuestionBox = '';
                 answerValueInScreen = '';
                 _confidence = 1.0;
-                _sentOneMessage = false;
+                chatHistory = [];
               });
             }),
           ],
@@ -250,14 +257,14 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       decoration: BoxDecoration(
         color: (icon == Icons.mic_rounded && _isListeningToUser) ? Colors.red : 
-          (icon == Icons.delete && _textValueInQuestionBox == '') ? Colors.grey : Colors.purple,    
+          (icon == Icons.delete && _textValueInQuestionBox == '' && chatHistory.length == 0) ? Colors.grey : Colors.purple,    
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
         icon: Icon(icon),
         color: Colors.white,
         iconSize: 30,
-        onPressed: (icon == Icons.delete && _textValueInQuestionBox == '' && !_sentOneMessage) ? null : onPressed,
+        onPressed: (icon == Icons.delete && _textValueInQuestionBox == '' && chatHistory.length == 0) ? null : onPressed,
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
