@@ -167,12 +167,14 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               Padding(
                 padding: const EdgeInsets.only(right: 50.0),
-                child: Text(
-                  'Confidence: $_confidence',
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
+                child: _confidence != 1.0 ? 
+                  Text(
+                    'Confidence: $_confidence',
+                    style: const TextStyle(
+                      color: Colors.white,
+                    ),
+                  ) : 
+                  SizedBox(), // Hide the confidence text if not equal to 1.0
               ),
               const SizedBox(
                 height: 30.0,
@@ -211,6 +213,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 log("erase values");
                 _textValueInQuestionBox = '';
                 answerValueInScreen = '';
+                _confidence = 1.0;
               });
             }),
           ],
@@ -272,7 +275,7 @@ class _MyHomePageState extends State<MyHomePage> {
         icon: Icon(icon),
         color: Colors.white,
         iconSize: 30,
-        onPressed: onPressed,
+        onPressed: (icon == Icons.delete && _textValueInQuestionBox == '') ? null : onPressed,
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
