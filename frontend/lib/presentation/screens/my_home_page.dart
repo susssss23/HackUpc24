@@ -114,14 +114,40 @@ class _MyHomePageState extends State<MyHomePage> {
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color.fromRGBO(33, 33, 33, 1),
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        title: const Text("Hack24"),
+        backgroundColor: Color.fromRGBO(114, 28, 130, 1),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.fromRGBO(114, 28, 130, 1), // Start color
+                Color.fromRGBO(95, 36, 162, 1), // End color
+              ],
+            ),
+          ),
+        ),
+        toolbarHeight: 80,
+        title: const Text(
+                  'AI Student Support Assistant',
+                  style: TextStyle(
+                    color: Color.fromARGB(255, 216, 185, 222),
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Montserrat',
+                    fontSize: 20.0,
+                    fontStyle: FontStyle.italic,
+                  ),
+        ),
+        titleSpacing: 35.0,
+
       ),
+      
       body: SingleChildScrollView(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
+              const SizedBox(height: 100.0),
               const Padding(
                 padding: EdgeInsets.only(right: 100.0, bottom: 5.0, top: 10.0),
                 child: Text(
@@ -131,6 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Montserrat',
                     fontSize: 20.0,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ),
@@ -161,6 +188,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildEnterBar() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTextBox(),
         const SizedBox(width: 10.0),
@@ -206,7 +234,8 @@ class _MyHomePageState extends State<MyHomePage> {
     
     return TextField(
       controller: _textEditingController,
-      maxLines: 4,
+      minLines: 5,
+      maxLines: 10,
       decoration: InputDecoration(
         filled: true,
         fillColor: Colors.white,
