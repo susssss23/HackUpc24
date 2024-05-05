@@ -1,7 +1,9 @@
 import 'dart:developer';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:my_web_app/presentation/controlador_presentacio.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
 
 class MyHomePage extends StatefulWidget {
   final ControladorPresentacio controladorPresentacio;
@@ -14,22 +16,24 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late ControladorPresentacio _controladorPresentacio;
-  late stt.SpeechToText _speech;
-  bool _isListening = false;
-  late String _textValueInQuestionBox;
-  TextEditingController _textEditingController = TextEditingController(text: '');
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechIsEnabled = false;
+  bool _isListeningToUser = false;
   double _confidence = 1.0;
+
+  late Timer _timer;
+
+  late String _textValueInQuestionBox;
+  final TextEditingController _textEditingController = TextEditingController(text: '');
   String answerValueInScreen = '';
-  bool _isMicrophoneActive = false;
 
   _MyHomePageState(ControladorPresentacio controladorPresentacio) {
     _controladorPresentacio = controladorPresentacio;
     _textValueInQuestionBox = '';
   }
 
-  void enviarMissatge() {
-    _loadResposta();
-  }
+  // SEND QUESTION to DJANGO BACKEND
+  void enviarMissatge() {_loadResposta(); }
 
   Future<void> _loadResposta() async {
     String resultRequest =
@@ -43,35 +47,66 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _speech = stt.SpeechToText();
+    _initSpeech();
   }
 
-  void startListening() async {
-    if (_isMicrophoneActive) {
-      if (!_isListening) {
-        bool available = await _speech.initialize(
-          onStatus: (status) => print('Speech recognition status: $status'),
-          onError: (error) => print('Error: $error'),
-        );
-        if (available) {
-          setState(() => _isListening = true);
-          _speech.listen(
-            onResult: (val) => setState(
-              () {
-                _textValueInQuestionBox = val.recognizedWords;
-                if (val.hasConfidenceRating && val.confidence > 0) {
-                  _confidence = val.confidence;
-                }
-              },
-            ),
-          );
+  // Listening methods
+  /// INIT: This has to happen only once per app
+    void _initSpeech() async {
+      _speechIsEnabled = await _speechToText.initialize();
+      setState(() {});
+    }
+
+
+    /// Each time to start a speech recognition session
+    void _startListening() async {
+      await _speechToText.listen(
+        listenOptions: SpeechListenOptions(cancelOnError: true, listenMode: ListenMode.dictation),
+        onResult: _onSpeechResult,
+        localeId: "en_En",
+        pauseFor: const Duration(seconds: 10), //adjustt duration as needed
+        listenFor: const Duration(seconds: 25), //adjustt duration as needed
+      );
+      setState(() {
+        _isListeningToUser = true;
+      });
+
+      
+      // Start the timer to periodically check if still listening
+      _timer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+        if (_speechToText.isNotListening) {
+          // Speech recognition stopped
+          _stopListening();
         }
-      } else {
-        setState(() => _isListening = false);
-        _speech.stop();
+      });
+    }
+
+    /// Manually stop the active speech recognition session
+    /// Note that there are also timeouts that each platform enforces and the SpeechToText plugin supports setting timeouts on the listen method.
+    void _stopListening() async {
+      await _speechToText.stop();
+      setState(() {
+        _isListeningToUser = false;
+        _timer.cancel();
+      });
+      log("END");
+    }
+
+    /// This is the callback that the SpeechToText plugin calls when the platform returns recognized words.
+    void _onSpeechResult(SpeechRecognitionResult result) {
+      setState(() {
+        _textValueInQuestionBox = result.recognizedWords;
+        if (result.hasConfidenceRating && result.confidence > 0) {
+          _confidence = result.confidence;
+        }
+      });
+
+      if (!_speechToText.isNotListening) {
+        // Call _stopListening if speech recognition is still active
+        log("IM USEFUL");
+        _stopListening();
       }
     }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,12 +172,9 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(height: 10.0),
 
             // MIC BUTTON
-            _buildIconButton(Icons.mic_rounded, () {
-              startListening();
-              setState(() {
-                _isMicrophoneActive = !_isMicrophoneActive;
-              });
-            }),
+            _buildIconButton(Icons.mic_rounded, 
+              _speechToText.isNotListening ? _startListening : _stopListening
+            ),
             const SizedBox(height: 10.0),
 
             // erase button
@@ -164,7 +196,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       alignment: Alignment.center,
       width: MediaQuery.of(context).size.width * 0.70,
-      child: _isMicrophoneActive ? _buildVoiceInput() : _buildTextInput(),
+      child: _isListeningToUser ? _buildVoiceInput() : _buildTextInput(),
     );
   }
 
@@ -185,10 +217,9 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       onChanged: (value) {
-        _textValueInQuestionBox = value;
-        //setState(() {
-        //  _isMicrophoneActive = false;
-        //});
+        setState(() {
+          _textValueInQuestionBox = value;
+        });
       },
     );
   }
@@ -212,12 +243,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-
-  // PARENT CLASS for ICON BUTTONS
   Widget _buildIconButton(IconData icon, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
-        color: icon == Icons.mic_rounded ? (_isMicrophoneActive ? Colors.red : Colors.grey) : Colors.purple,
+        color: (icon == Icons.mic_rounded && _isListeningToUser) ? Colors.red : 
+          (icon == Icons.delete && _textValueInQuestionBox == '') ? Colors.grey : Colors.purple,    
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
