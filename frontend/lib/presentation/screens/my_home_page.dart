@@ -19,9 +19,13 @@ class _MyHomePageState extends State<MyHomePage> {
   final SpeechToText _speechToText = SpeechToText();
   bool _speechIsEnabled = false;
   bool _isListeningToUser = false;
+  bool _sentOneMessage = false;
   double _confidence = 1.0;
 
+
   late Timer _timer;
+
+   List<String> chatHistory = [];
 
   late String _textValueInQuestionBox;
   final TextEditingController _textEditingController = TextEditingController(text: '');
@@ -33,14 +37,23 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // SEND QUESTION to DJANGO BACKEND
-  void enviarMissatge() {_loadResposta(); }
+  void enviarMissatge() {
+    setState(() {
+      chatHistory.add(_textValueInQuestionBox);
+      _textValueInQuestionBox = '';
+      chatHistory.add("...");
+    });
+    _loadResposta(); 
+    
+    }
 
   Future<void> _loadResposta() async {
     String resultRequest =
         await _controladorPresentacio.sendPost(_textValueInQuestionBox, "english");
 
     setState(() {
-      answerValueInScreen = resultRequest;
+      chatHistory[chatHistory.length-1] = resultRequest;
+      _sentOneMessage = true;
     });
   }
 
@@ -129,63 +142,31 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         toolbarHeight: 80,
         title: const Text(
-                  'AI Student Support Assistant',
-                  style: TextStyle(
-                    color: Color.fromARGB(255, 216, 185, 222),
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Montserrat',
-                    fontSize: 20.0,
-                    fontStyle: FontStyle.italic,
-                  ),
-        ),
-        titleSpacing: 35.0,
-
-      ),
-      
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              const SizedBox(height: 100.0),
-              const Padding(
-                padding: EdgeInsets.only(right: 100.0, bottom: 5.0, top: 10.0),
-                child: Text(
-                  'Ask me anything',
-                  style: TextStyle(
-                    color: Colors.purple,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Montserrat',
-                    fontSize: 20.0,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-                child: _buildEnterBar(),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 50.0),
-                child: _confidence != 1.0 ? 
-                  Text(
-                    'Confidence: $_confidence',
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ) : 
-                  SizedBox(), // Hide the confidence text if not equal to 1.0
-              ),
-              const SizedBox(
-                height: 30.0,
-              ),
-              _buildResposta(),
-            ],
+          'AI Student Support Assistant',
+          style: TextStyle(
+            color: Color.fromARGB(255, 216, 185, 222),
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Montserrat',
+            fontSize: 20.0,
+            fontStyle: FontStyle.italic,
           ),
         ),
+        titleSpacing: 35.0,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _buildChatHistory(),
+          ),
+          const SizedBox(height: 25.0),
+          _buildEnterBar(),
+          const SizedBox(height: 25.0),
+        ],
       ),
     );
   }
+
+
 
   Widget _buildEnterBar() {
     return Row(
@@ -214,6 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _textValueInQuestionBox = '';
                 answerValueInScreen = '';
                 _confidence = 1.0;
+                _sentOneMessage = false;
               });
             }),
           ],
@@ -226,7 +208,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildTextBox() {
     return Container(
       alignment: Alignment.center,
-      width: MediaQuery.of(context).size.width * 0.70,
+      width: MediaQuery.of(context).size.width * 0.77,
       child: _buildTextInput(),
     );
   }
@@ -275,7 +257,7 @@ class _MyHomePageState extends State<MyHomePage> {
         icon: Icon(icon),
         color: Colors.white,
         iconSize: 30,
-        onPressed: (icon == Icons.delete && _textValueInQuestionBox == '') ? null : onPressed,
+        onPressed: (icon == Icons.delete && _textValueInQuestionBox == '' && !_sentOneMessage) ? null : onPressed,
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
@@ -283,23 +265,67 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildResposta() {
-    return SizedBox(
-      width: 350,
-      height: 470,
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Text(
-              answerValueInScreen,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20.0,
+  Widget _buildChatHistory() {
+    return Container(
+      width: double.infinity,
+      height: 300, // Or any other fixed height
+      //color: Colors.blue,
+      child: Column(
+        children: [
+          const SizedBox(height: 20.0),
+          const Text(
+            'Ask me anything',
+            style: TextStyle(
+              color: Colors.purple,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Montserrat',
+              fontSize: 20.0,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          Expanded(
+            child: Container(
+              child: ListView.builder(
+                itemCount: chatHistory.length,
+                itemBuilder: (context, index) {
+                  return _buildChatBubble(chatHistory[index], index);
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+
+  Widget _buildChatBubble(String message, int index) {
+    final isUserMessage = index % 2 == 0; // Alternate message alignment
+
+    return Column(
+      crossAxisAlignment: isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20),
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            gradient: LinearGradient(
+              colors: isUserMessage ? [Colors.purple, const Color.fromARGB(255, 114, 27, 130)] : [Color.fromARGB(255, 212, 161, 222), Color.fromARGB(255, 208, 114, 227)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.8, // Set maximum width as 80% of screen width
+          ),
+          child: Text(
+            message,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        if (!isUserMessage) const SizedBox(height: 10), // Add extra space after every second message
+      ],
     );
   }
 }
