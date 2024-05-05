@@ -114,9 +114,9 @@ class _MyHomePageState extends State<MyHomePage> {
       resizeToAvoidBottomInset: true,
       backgroundColor: const Color.fromRGBO(33, 33, 33, 1),
       appBar: AppBar(
-        backgroundColor: Color.fromRGBO(114, 28, 130, 1),
+        backgroundColor: const Color.fromRGBO(114, 28, 130, 1),
         flexibleSpace: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
