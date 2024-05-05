@@ -47,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _timer2 = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       i = (i % 3) + 1;
       setState(() {
-        answerStructure[answerStructure.length-1] = "." * i + " "*(3-i);
+        if (answerStructure.length != 0) answerStructure[answerStructure.length-1] = "." * i + " "*(3-i);
       });
     });
     _loadResposta();
@@ -95,6 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _timer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
         if (_speechToText.isNotListening) {
           // Speech recognition stopped
+          log("AUTO STOPING");
           _stopListening();
         }
       });
@@ -120,12 +121,6 @@ class _MyHomePageState extends State<MyHomePage> {
           _confidence = result.confidence;
         }
       });
-
-      if (!_speechToText.isNotListening) {
-        // Call _stopListening if speech recognition is still active
-        log("IM USEFUL");
-        _stopListening();
-      }
     }
 
   @override
@@ -154,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
             color: Color.fromARGB(255, 216, 185, 222),
             fontWeight: FontWeight.bold,
             fontFamily: 'Montserrat',
-            fontSize: 20.0,
+            fontSize: 22.0,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -164,7 +159,7 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           const SizedBox(height: 40.0),
           const Text(
-            'Ask me anything',
+            'Ask it Anything',
             style: TextStyle(
               color: Colors.purple,
               fontWeight: FontWeight.bold,
@@ -186,7 +181,7 @@ class _MyHomePageState extends State<MyHomePage> {
               fontStyle: FontStyle.italic,
             ),
           ),
-                    const SizedBox(height: 10.0),
+                    const SizedBox(height: 3.0),
           Expanded(
             child: _buildanswerStructure(),
           ),
@@ -261,7 +256,8 @@ class _MyHomePageState extends State<MyHomePage> {
         minLines: 6,
         maxLines: 10,
         decoration: const InputDecoration(
-          hintText: 'Enter Question...',
+          hintText: 'Enter your Question...',
+          hintStyle: TextStyle(fontStyle: FontStyle.italic),
           fillColor: Colors.white,
           filled: true,
           border: InputBorder.none,
@@ -330,7 +326,7 @@ class _MyHomePageState extends State<MyHomePage> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             gradient: LinearGradient(
-              colors: isUserMessage ? [Colors.purple, const Color.fromARGB(255, 114, 27, 130)] : [Color.fromARGB(255, 212, 161, 222), Color.fromARGB(255, 208, 114, 227)],
+              colors: isUserMessage ? [Colors.purple, Color.fromARGB(255, 89, 21, 101)] : [Color.fromARGB(255, 212, 161, 222), Color.fromARGB(255, 208, 114, 227)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
