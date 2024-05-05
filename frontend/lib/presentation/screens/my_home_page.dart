@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // SEND QUESTION to DJANGO BACKEND
   void enviarMissatge() {
     setState(() {
-      chatHistory.add(_textValueInQuestionBox);
+      chatHistory = [_textValueInQuestionBox];
       _textValueInQuestionBox = '';
       chatHistory.add("...");
     });
@@ -165,9 +165,9 @@ class _MyHomePageState extends State<MyHomePage> {
           Expanded(
             child: _buildChatHistory(),
           ),
-          const SizedBox(height: 25.0),
+          const SizedBox(height: 35.0),
           _buildEnterBar(),
-          const SizedBox(height: 25.0),
+          const SizedBox(height: 35.0),
         ],
       ),
     );
@@ -236,7 +236,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       child: TextField(
         controller: _textEditingController,
-        minLines: 5,
+        minLines: 6,
         maxLines: 10,
         decoration: const InputDecoration(
           hintText: 'Enter Question...',
@@ -279,17 +279,18 @@ class _MyHomePageState extends State<MyHomePage> {
       //color: Colors.blue,
       child: Column(
         children: [
-          const SizedBox(height: 20.0),
+          const SizedBox(height: 40.0),
           const Text(
             'Ask me anything',
             style: TextStyle(
               color: Colors.purple,
               fontWeight: FontWeight.bold,
               fontFamily: 'Montserrat',
-              fontSize: 20.0,
+              fontSize: 30.0,
               fontStyle: FontStyle.italic,
             ),
           ),
+          const SizedBox(height: 20.0),
           Expanded(
             child: Container(
               child: ListView.builder(
@@ -313,7 +314,7 @@ class _MyHomePageState extends State<MyHomePage> {
       crossAxisAlignment: isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         Container(
-          margin: EdgeInsets.symmetric(vertical: 5, horizontal: 20),
+          margin: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
@@ -324,11 +325,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.8, // Set maximum width as 80% of screen width
+            maxWidth: MediaQuery.of(context).size.width * 0.75, // Set maximum width as 80% of screen width
           ),
           child: Text(
             message,
-            style: const TextStyle(color: Colors.white),
+            
+            style: const TextStyle(color: Colors.white, fontSize: 16.0,),
           ),
         ),
         if (!isUserMessage) const SizedBox(height: 10), // Add extra space after every second message
