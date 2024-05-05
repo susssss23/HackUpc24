@@ -25,7 +25,7 @@ class ControladorDomini {
         // Access the value of the 'attribute'
         String attributeValue = jsonResponse['response'];
         log("RESPONSE : $attributeValue");
-        return attributeValue;
+        return attributeValue.replaceAll('\n', ' ');
 
       } else {
         throw Exception('Attribute not found in JSON response');
