@@ -233,7 +233,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _textEditingController.text = _textValueInQuestionBox; // Set text value
   
     return Container(
-      padding: EdgeInsets.all(5.0),
+      padding: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20.0),
         border: Border.all(
