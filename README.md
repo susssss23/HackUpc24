@@ -22,5 +22,3 @@ This GenAI does it all for you!
   
   ![Diagrama sense títol drawio](https://github.com/susssss23/HackUpc24/assets/104654988/91532015-2796-43c6-a521-6c1be85be6e4)
 </center>
-
-
