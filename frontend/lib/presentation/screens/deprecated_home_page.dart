@@ -6,19 +6,20 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:page_transition/page_transition.dart';
 
-import 'package:my_web_app/presentation/screens/single_home_page.dart';
+import 'package:my_web_app/presentation/screens/my_home_page.dart';
 
 
-class MyHomePage extends StatefulWidget {
+class SecondHomePage extends StatefulWidget {
   final ControladorPresentacio controladorPresentacio;
 
-  const MyHomePage({Key? key, required this.controladorPresentacio}) : super(key: key);
+  const SecondHomePage({Key? key, required this.controladorPresentacio}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState(controladorPresentacio);
+  State<SecondHomePage> createState() => _SecondHomePageState(controladorPresentacio);
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _SecondHomePageState extends State<SecondHomePage> {
+  
   late ControladorPresentacio _controladorPresentacio;
   final SpeechToText _speechToText = SpeechToText();
   bool _speechIsEnabled = false;
@@ -30,13 +31,13 @@ class _MyHomePageState extends State<MyHomePage> {
   late Timer _timer2;
   int i = 0;
 
-   List<String> answerStructure = [];
+   List<String> chatHistory = [];
 
   late String _textValueInQuestionBox;
   final TextEditingController _textEditingController = TextEditingController(text: '');
   String answerValueInScreen = '';
 
-  _MyHomePageState(ControladorPresentacio controladorPresentacio) {
+  _SecondHomePageState(ControladorPresentacio controladorPresentacio) {
     _controladorPresentacio = controladorPresentacio;
     _textValueInQuestionBox = '';
   }
@@ -44,14 +45,14 @@ class _MyHomePageState extends State<MyHomePage> {
   // SEND QUESTION to DJANGO BACKEND
   void enviarMissatge() {
     setState(() {
-      answerStructure = [];
-      //_textValueInQuestionBox = '';
-      answerStructure.add("...");
+      chatHistory.add(_textValueInQuestionBox);
+      _textValueInQuestionBox = '';
+      chatHistory.add("...");
     });
     _timer2 = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       i = (i % 3) + 1;
       setState(() {
-        if (answerStructure.length != 0) answerStructure[answerStructure.length-1] = "." * i + " "*(3-i);
+        chatHistory[chatHistory.length-1] = "." * i + " "*(3-i);
       });
     });
     _loadResposta();
@@ -63,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _timer2.cancel();
     setState(() {
       _timer2.cancel();
-      answerStructure[answerStructure.length-1] = resultRequest;
+      chatHistory[chatHistory.length-1] = resultRequest;
     });
   }
 
@@ -99,7 +100,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _timer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
         if (_speechToText.isNotListening) {
           // Speech recognition stopped
-          log("AUTO STOPING");
           _stopListening();
         }
       });
@@ -125,6 +125,12 @@ class _MyHomePageState extends State<MyHomePage> {
           _confidence = result.confidence;
         }
       });
+
+      if (!_speechToText.isNotListening) {
+        // Call _stopListening if speech recognition is still active
+        log("IM USEFUL");
+        _stopListening();
+      }
     }
 
   @override
@@ -166,7 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: EdgeInsets.all(0.0),
             shape: CircleBorder(),
             child: Icon(
-              Icons.person,
+              Icons.textsms,
               size: 35,
               color: Color.fromRGBO(114, 28, 130, 1),
               ),
@@ -175,42 +181,21 @@ class _MyHomePageState extends State<MyHomePage> {
                     context,
                     PageTransition(
                       type: PageTransitionType.leftToRight,
-                      child: SingleHomePage(controladorPresentacio: _controladorPresentacio),
+                      child: MyHomePage(controladorPresentacio: _controladorPresentacio),
                     ),
                   );
             },
           ),
         ),
-      ),      body: Column(
+      ),
+      body: Column(
         children: [
-          const SizedBox(height: 40.0),
-          const Text(
-            'Ask it Anything',
-            style: TextStyle(
-              color: Colors.purple,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Montserrat',
-              fontSize: 30.0,
-              fontStyle: FontStyle.italic,
-            ),
-          ),          
-          const SizedBox(height: 10.0),
-          _buildEnterBar(),
-          const SizedBox(height: 75.0),
-          const Text(
-            'GenAI\'s Answer',
-            style: TextStyle(
-              color: Colors.purple,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Montserrat',
-              fontSize: 30.0,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-                    const SizedBox(height: 3.0),
           Expanded(
-            child: _buildanswerStructure(),
+            child: _buildChatHistory(),
           ),
+          const SizedBox(height: 35.0),
+          _buildEnterBar(),
+          const SizedBox(height: 35.0),
         ],
       ),
     );
@@ -245,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _textValueInQuestionBox = '';
                 answerValueInScreen = '';
                 _confidence = 1.0;
-                answerStructure = [];
+                chatHistory = [];
               });
             }),
           ],
@@ -282,8 +267,7 @@ class _MyHomePageState extends State<MyHomePage> {
         minLines: 6,
         maxLines: 10,
         decoration: const InputDecoration(
-          hintText: 'Enter your Question...',
-          hintStyle: TextStyle(fontStyle: FontStyle.italic),
+          hintText: 'Enter Question...',
           fillColor: Colors.white,
           filled: true,
           border: InputBorder.none,
@@ -301,14 +285,14 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       decoration: BoxDecoration(
         color: (icon == Icons.mic_rounded && _isListeningToUser) ? Colors.red : 
-          (icon == Icons.delete && _textValueInQuestionBox == '' && answerStructure.length == 0) ? Colors.grey : Colors.purple,    
+          (icon == Icons.delete && _textValueInQuestionBox == '' && chatHistory.length == 0) ? Colors.grey : Colors.purple,    
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
         icon: Icon(icon),
         color: Colors.white,
         iconSize: 30,
-        onPressed: (icon == Icons.delete && _textValueInQuestionBox == '' && answerStructure.length == 0) ? null : onPressed,
+        onPressed: (icon == Icons.delete && _textValueInQuestionBox == '' && chatHistory.length == 0) ? null : onPressed,
         padding: const EdgeInsets.all(9.0),
         splashRadius: 20,
         constraints: const BoxConstraints(),
@@ -316,19 +300,31 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildanswerStructure() {
+  Widget _buildChatHistory() {
     return Container(
       width: double.infinity,
       height: 300, // Or any other fixed height
       //color: Colors.blue,
       child: Column(
         children: [
+          const SizedBox(height: 40.0),
+          const Text(
+            'Ask me anything',
+            style: TextStyle(
+              color: Colors.purple,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Montserrat',
+              fontSize: 30.0,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 20.0),
           Expanded(
             child: Container(
               child: ListView.builder(
-                itemCount: answerStructure.length,
+                itemCount: chatHistory.length,
                 itemBuilder: (context, index) {
-                  return _buildChatBubble(answerStructure[index], index);
+                  return _buildChatBubble(chatHistory[index], index);
                 },
               ),
             ),
@@ -343,25 +339,26 @@ class _MyHomePageState extends State<MyHomePage> {
     final isUserMessage = index % 2 == 0; // Alternate message alignment
 
     return Column(
-      crossAxisAlignment: isUserMessage ? CrossAxisAlignment.center : CrossAxisAlignment.center,
+      crossAxisAlignment: isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         Container(
-          width: (answerStructure[0].length <= 4) ? 40 : MediaQuery.of(context).size.width * 0.75, // Set maximum width as 80% of screen width
-          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+          margin: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             gradient: LinearGradient(
-              colors: isUserMessage ? [Colors.purple, Color.fromARGB(255, 89, 21, 101)] : [Color.fromARGB(255, 212, 161, 222), Color.fromARGB(255, 208, 114, 227)],
+              colors: isUserMessage ? [Colors.purple, const Color.fromARGB(255, 114, 27, 130)] : [Color.fromARGB(255, 212, 161, 222), Color.fromARGB(255, 208, 114, 227)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
           ),
-          
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75, // Set maximum width as 80% of screen width
+          ),
           child: Text(
             message,
             
-            style: const TextStyle(color: Colors.white, fontSize: 17.0,),
+            style: const TextStyle(color: Colors.white, fontSize: 16.0,),
           ),
         ),
         if (!isUserMessage) const SizedBox(height: 10), // Add extra space after every second message
